@@ -6,5 +6,12 @@ export interface IUser {
   email: string;
   password?: string;
   role: "farmer" | "seller" | "admin";
+  phone?: string;
+  address?: string;
+  avatar?: string;
+  documentPdf?: string;
+  documentName?: string;
+  bio?: string;
   createdAt: Date;
+  updatedAt?: Date;
 }
