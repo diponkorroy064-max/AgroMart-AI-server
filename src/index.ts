@@ -10,7 +10,9 @@ import adminRoutes from "./routes/admin";
 import favoriteRoutes from "./routes/favorite";
 import inventoryRoutes from "./routes/inventory";
 import categoryRoutes from "./routes/category";
+import blogRoutes from "./routes/blog";
 import { seedCategoriesIfEmpty } from "./controllers/categoryController";
+import { seedBlogsIfEmpty } from "./controllers/blogController";
 import { UPLOAD_DIR } from "./config/multer";
 
 dotenv.config();
@@ -48,6 +50,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/blogs", blogRoutes);
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", service: "AgroMart AI Server", timestamp: new Date() });
@@ -60,6 +63,7 @@ app.get("/", (req: Request, res: Response) => {
 const startServer = async () => {
   await connectDB();
   await seedCategoriesIfEmpty();
+  await seedBlogsIfEmpty();
   app.listen(port, () => {
     console.log(`[server]: Server is running at http://localhost:${port}`);
   });
