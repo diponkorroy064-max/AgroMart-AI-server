@@ -71,3 +71,41 @@ export const protect = async (
     message: "লগইন করা আবশ্যক (No token)",
   });
 };
+
+/**
+ * Optional Authentication Middleware
+ * Attaches user to req.user if a valid token is present, but allows guest access if absent or invalid.
+ */
+export const optionalProtect = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer ")
+  ) {
+    try {
+      const token = req.headers.authorization.split(" ")[1];
+      if (token) {
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET as string
+        ) as any;
+
+        const userId = decoded?.id || decoded?._id;
+        if (userId && ObjectId.isValid(userId)) {
+          const user = await usersCollection.findOne({
+            _id: new ObjectId(userId),
+          });
+          if (user) {
+            req.user = user;
+          }
+        }
+      }
+    } catch {
+      // Guest fallback - proceed without req.user
+    }
+  }
+  return next();
+};

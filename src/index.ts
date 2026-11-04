@@ -11,6 +11,8 @@ import favoriteRoutes from "./routes/favorite";
 import inventoryRoutes from "./routes/inventory";
 import categoryRoutes from "./routes/category";
 import blogRoutes from "./routes/blog";
+import notificationRoutes from "./routes/notification";
+import aiRoutes from "./routes/ai";
 import { seedCategoriesIfEmpty } from "./controllers/categoryController";
 import { seedBlogsIfEmpty } from "./controllers/blogController";
 import { UPLOAD_DIR } from "./config/multer";
@@ -51,6 +53,8 @@ app.use("/api/favorites", favoriteRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/blogs", blogRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", service: "AgroMart AI Server", timestamp: new Date() });

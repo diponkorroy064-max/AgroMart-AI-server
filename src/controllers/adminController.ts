@@ -5,6 +5,7 @@ import { IUser } from "../models/User";
 import { IProduct, ProductStatus } from "../models/Product";
 import { IOrder } from "../models/Order";
 import { AuthenticatedRequest } from "../types/express";
+import { ensureOrderCompatibility } from "./orderController";
 
 const usersCollection = client.db("AgroMart").collection<IUser>("users");
 const productsCollection = client.db("AgroMart").collection<IProduct>("products");
@@ -342,23 +343,41 @@ export const getAdminOrders = async (req: AuthenticatedRequest, res: Response) =
     const query: any = {};
 
     if (status && status !== "all") {
-      query.status = status;
+      const upper = status.toUpperCase();
+      const lower = status.toLowerCase();
+      query.$or = [{ status: upper }, { status: lower }, { status }];
     }
 
     if (search && search.trim()) {
       const q = search.trim();
-      query.$or = [
+      const searchConditions = [
         { orderNumber: { $regex: q, $options: "i" } },
         { customerName: { $regex: q, $options: "i" } },
         { customerPhone: { $regex: q, $options: "i" } },
         { "shippingAddress.district": { $regex: q, $options: "i" } },
+        { "shippingAddress.address": { $regex: q, $options: "i" } },
+        { trackingNumber: { $regex: q, $options: "i" } },
+        { courierName: { $regex: q, $options: "i" } },
+        { "shipments.trackingNumber": { $regex: q, $options: "i" } },
+        { "shipments.courierName": { $regex: q, $options: "i" } },
+        { "shipments.sellerName": { $regex: q, $options: "i" } },
+        { "items.name": { $regex: q, $options: "i" } },
       ];
+
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, { $or: searchConditions }];
+        delete query.$or;
+      } else {
+        query.$or = searchConditions;
+      }
     }
 
-    const orders = await ordersCollection
+    const rawOrders = await ordersCollection
       .find(query)
       .sort({ createdAt: -1, _id: -1 })
       .toArray();
+
+    const orders = rawOrders.map(ensureOrderCompatibility);
 
     return res.status(200).json(orders);
   } catch (error) {

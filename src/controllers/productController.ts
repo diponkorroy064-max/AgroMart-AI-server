@@ -403,7 +403,28 @@ export const getAllProducts = async (req: Request, res: Response) => {
     };
 
     if (search && search.trim()) {
-      query.name = { $regex: search.trim(), $options: "i" };
+      const s = search.trim();
+      const escaped = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      // Bilingual search expansion for agricultural terms
+      const searchTerms = [escaped];
+      if (/টমেটো|tomato/i.test(s)) searchTerms.push("tomato", "টমেটো");
+      if (/সার|fertilizer|vermicompost|কম্পোস্ট/i.test(s)) searchTerms.push("fertilizer", "vermicompost", "npk", "urea", "সার");
+      if (/বীজ|seed|ধান|চাল|rice/i.test(s)) searchTerms.push("seed", "rice", "বীজ", "ধান");
+      if (/পেস্টিসাইড|কীটনাশক|বালাইনাশক|নিম|neem|pesticide/i.test(s)) searchTerms.push("pesticide", "neem", "insecticide", "fungicide", "কীটনাশক", "বালাইনাশক");
+      if (/স্প্রিংকলার|সেচ|পাম্প|pump|irrigation/i.test(s)) searchTerms.push("pump", "irrigation", "sprinkler", "drip", "সেচ", "পাম্প");
+      if (/ম্যাট|স্ল্যাট|যন্ত্রপাতি|সরঞ্জাম|tiller|tractor|tools/i.test(s)) searchTerms.push("tiller", "sprayer", "shovel", "sickle", "tools", "equipment", "যন্ত্রপাতি");
+
+      const searchPattern = searchTerms.join("|");
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { name: { $regex: searchPattern, $options: "i" } },
+          { description: { $regex: searchPattern, $options: "i" } },
+          { category: { $regex: searchPattern, $options: "i" } },
+          { subcategory: { $regex: searchPattern, $options: "i" } },
+        ],
+      });
     }
 
     if (category && category !== "all" && category !== "All") {
@@ -427,12 +448,13 @@ export const getAllProducts = async (req: Request, res: Response) => {
 
       if (catDoc) {
         orConditions.push({ categoryId: catDoc._id });
+        orConditions.push({ categoryId: catDoc._id.toString() });
         const docSlug = (catDoc.slug || "").toLowerCase();
 
         if (docSlug === "fertilizers") {
           orConditions.push({ category: { $regex: "fertilizer|urea|tsp|dap|potash|সার", $options: "i" } });
         } else if (docSlug === "seeds") {
-          orConditions.push({ category: { $regex: "seed|ধান|বীজ", $options: "i" } });
+          orConditions.push({ category: { $regex: "seed|ধান|বীজ|seedling", $options: "i" } });
         } else if (docSlug === "pesticides") {
           orConditions.push({ category: { $regex: "pesticide|crop protection|insecticide|fungicide|কীটনাশক|বালাইনাশক", $options: "i" } });
         } else if (docSlug === "herbicides") {
@@ -442,7 +464,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
         } else if (docSlug === "irrigation-equipment") {
           orConditions.push({ category: { $regex: "irrigation|pump|drip|sprinkler|সেচ|greenhouse", $options: "i" } });
         } else if (docSlug === "farming-tools") {
-          orConditions.push({ category: { $regex: "tool|shears|sickle|spade|testing|সরঞ্জাম", $options: "i" } });
+          orConditions.push({ category: { $regex: "tool|shears|sickle|spade|testing|সরঞ্জাম|equipment", $options: "i" } });
         }
 
         const engMatch = catDoc.name?.match(/\(([^)]+)\)/);
